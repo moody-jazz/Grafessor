@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Graphessor</title>
+
+  <!-- D3.js -->
+  <script src="https://d3js.org/d3.v5.min.js"></script>
+
+  <!-- MathJax -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+  <!-- Top Bar -->
+  <header class="top-bar">
+    <div class="logo">GRAPHESSOR</div>
+    <div class="top-controls">
+      <a href="https://github.com/moody-Jazz/Graphessor" target="_blank" class="github-link">GitHub</a>
+      <label class="switch">
+        <input type="checkbox" id="theme-toggle">
+        <span class="slider round"></span>
+      </label>
+    </div>
+  </header>
+
+  <!-- Main Layout -->
+  <div class="main-container">
+    <!-- Left Panel -->
+    <div class="left-panel">
+      <label for="algo-select">Select Algorithm:</label>
+      <select id="algo-select">
+        <option value="">-- Choose an algorithm --</option>
+        <option value="dijkstra">Dijkstra's Algorithm</option>
+        <option value="bfs">Breadth First Search</option>
+        <option value="dfs">Depth First Search</option>
+        <option value="prim">Prim's Algorithm</option>
+        <option value="kruskal">Kruskal's Algorithm</option>
+      </select>
+
+      <button id="compute-btn">Compute</button>
+
+      <div id="output-box" class="output-box">Output will appear here...</div>
+    </div>
+
+    <!-- Right Panel -->
+    <div class="right-panel">
+      <div class="graph-controls">
+        <button id="clear-graph">Clear All</button>
+        <button id="info-btn">Control Info</button>
+      </div>
+      <div id="svg-wrap" class="graph-area"></div>
+      <div id="svg-output" class="svg-info">Vertex / Edge info will appear here...</div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="ui.js"></script>
+  <script src="app.js"></script>
+</body>
+
+</html>
