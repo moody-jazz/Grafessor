@@ -22,7 +22,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Clear all
   document.getElementById("clear-graph").addEventListener("click", () => {
-    // This should call your app.js graph clearing logic
     outputBox.innerHTML = "Graph cleared.";
   });
 });
