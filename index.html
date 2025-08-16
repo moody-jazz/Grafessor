@@ -21,10 +21,17 @@
     <div class="logo">Grafessor</div>
     <div class="top-controls">
       <a href="https://github.com/moody-Jazz/Grafessor" target="_blank" class="github-link">GitHub</a>
-      <label class="switch">
-        <input type="checkbox" id="theme-toggle">
-        <span class="slider round"></span>
-      </label>
+      
+      <div class="theme-toggle-container">
+        <div class="mode-indicator">
+          <span class="mode-icon" id="mode-icon"></span>
+          <span id="mode-text"></span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="theme-toggle">
+          <span class="slider round"></span>
+        </label>
+      </div>
     </div>
   </header>
 
@@ -41,6 +48,13 @@
         <option value="prim">Prim's Algorithm</option>
         <option value="kruskal">Kruskal's Algorithm</option>
       </select>
+
+      <div class="source-selector">
+        <label for="source-select">Select Source Node:</label>
+        <select id="source-select" disabled>
+          <option value="">-- No nodes available --</option>
+        </select>
+      </div>
 
       <button id="compute-btn">Compute</button>
 
@@ -59,8 +73,8 @@
   </div>
 
   <!-- Scripts -->
-  <script src="ui.js"></script>
-  <script src="canvas.js"></script>
+  <script src="app.js"></script>
+  </script>
 </body>
 
 </html>

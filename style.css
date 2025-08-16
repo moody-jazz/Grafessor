@@ -133,11 +133,11 @@ body {
   box-shadow: 0 1px 3px var(--shadow);
 }
 
-input:checked + .slider {
+input:checked+.slider {
   background-color: var(--accent-primary);
 }
 
-input:checked + .slider:before {
+input:checked+.slider:before {
   transform: translateX(26px);
 }
 
@@ -316,7 +316,7 @@ button:active {
 .dragLine {
   stroke: var(--accent-primary);
   stroke-width: 2px;
-  stroke-dasharray: 5,5;
+  stroke-dasharray: 5, 5;
   opacity: 0.7;
 }
 
@@ -338,21 +338,78 @@ button:active {
   overflow-y: auto;
 }
 
+.theme-toggle-container {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.mode-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  transition: all 0.3s ease;
+}
+
+.mode-icon {
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.source-selector {
+  margin-bottom: 1.5rem;
+}
+
+#source-select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+
+#source-select:focus {
+  outline: none;
+  border-color: var(--success);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+#source-select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: var(--bg-tertiary);
+}
+
+.vertex.source-node {
+  stroke: var(--success);
+  stroke-width: 4px;
+}
+
 /* Responsive Design */
 @media (max-width: 1024px) {
   .main-container {
     flex-direction: column;
   }
-  
+
   .left-panel {
     width: 100%;
     padding: 1.5rem;
   }
-  
+
   .right-panel {
     padding: 1.5rem;
   }
-  
+
   .graph-area {
     height: 400px;
   }
@@ -362,20 +419,20 @@ button:active {
   .top-bar {
     padding: 0 1rem;
   }
-  
+
   .top-controls {
     gap: 1rem;
   }
-  
+
   .left-panel,
   .right-panel {
     padding: 1rem;
   }
-  
+
   .graph-controls {
     flex-direction: column;
   }
-  
+
   .graph-controls button {
     width: 100%;
   }
@@ -387,6 +444,7 @@ button:active {
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -458,7 +516,7 @@ select:focus {
   left: 0;
   right: 0;
   bottom: 0;
-  background-image: 
+  background-image:
     radial-gradient(circle, var(--border-color) 1px, transparent 1px);
   background-size: 20px 20px;
   opacity: 0.3;

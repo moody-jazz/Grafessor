@@ -18,11 +18,11 @@ function updateDimensions() {
   const container = document.getElementById("svg-wrap");
   w = container.clientWidth;
   h = container.clientHeight;
-  
+
   if (svg) {
     svg.attr("width", w).attr("height", h);
   }
-  
+
   // Update force simulation center
   if (force) {
     force.force("x", d3.forceX(w / 2));
@@ -75,7 +75,7 @@ clrBtn.on("click", clearGraph);
 
 // Boundary constraint function
 function boundNodes() {
-  nodes.forEach(function(d) {
+  nodes.forEach(function (d) {
     d.x = Math.max(rad, Math.min(w - rad, d.x));
     d.y = Math.max(rad, Math.min(h - rad, d.y));
   });
@@ -94,26 +94,26 @@ function clearGraph() {
 function tick() {
   // Apply boundary constraints
   boundNodes();
-  
+
   edges
-    .attr("x1", function(d) {
+    .attr("x1", function (d) {
       return d.source.x;
     })
-    .attr("y1", function(d) {
+    .attr("y1", function (d) {
       return d.source.y;
     })
-    .attr("x2", function(d) {
+    .attr("x2", function (d) {
       return d.target.x;
     })
-    .attr("y2", function(d) {
+    .attr("y2", function (d) {
       return d.target.y;
     });
 
   vertices
-    .attr("cx", function(d) {
+    .attr("cx", function (d) {
       return d.x;
     })
-    .attr("cy", function(d) {
+    .attr("cy", function (d) {
       return d.y;
     });
 }
@@ -130,24 +130,26 @@ function addNode() {
     restart();
     showGraphLatex();
   }
+  updateSourceSelector();
 }
 
 function removeNode(d, i) {
   //to make ctrl-drag works for mac/osx users
   if (d3.event.ctrlKey) return;
   nodes.splice(nodes.indexOf(d), 1);
-  var linksToRemove = links.filter(function(l) {
+  var linksToRemove = links.filter(function (l) {
     return l.source === d || l.target === d;
   });
-  linksToRemove.map(function(l) {
+  linksToRemove.map(function (l) {
     links.splice(links.indexOf(l), 1);
   });
-  if(nodes.length != 0)
+  if (nodes.length != 0)
     lastNodeId = Math.max(...nodes.map(node => node.id));
   else lastNodeId = 0;
   d3.event.preventDefault();
   restart();
   showGraphLatex();
+  updateSourceSelector();
 }
 
 function removeEdge(d, i) {
@@ -169,13 +171,13 @@ function beginDragLine(d) {
     .attr(
       "d",
       "M" +
-        mousedownNode.x +
-        "," +
-        mousedownNode.y +
-        "L" +
-        mousedownNode.x +
-        "," +
-        mousedownNode.y
+      mousedownNode.x +
+      "," +
+      mousedownNode.y +
+      "L" +
+      mousedownNode.x +
+      "," +
+      mousedownNode.y
     );
 }
 
@@ -185,13 +187,13 @@ function updateDragLine() {
   dragLine.attr(
     "d",
     "M" +
-      mousedownNode.x +
-      "," +
-      mousedownNode.y +
-      "L" +
-      coords[0] +
-      "," +
-      coords[1]
+    mousedownNode.x +
+    "," +
+    mousedownNode.y +
+    "L" +
+    coords[0] +
+    "," +
+    coords[1]
   );
 }
 
@@ -237,12 +239,12 @@ function keydown() {
           d.fx = d.x;
           d.fy = d.y;
         })
-        .on("drag", function(d) {
+        .on("drag", function (d) {
           // Apply boundary constraints during dragging
           d.fx = Math.max(rad, Math.min(w - rad, d3.event.x));
           d.fy = Math.max(rad, Math.min(h - rad, d3.event.y));
         })
-        .on("end", function(d) {
+        .on("end", function (d) {
           if (!d3.event.active) force.alphaTarget(0);
           d.fx = null;
           d.fy = null;
@@ -261,7 +263,7 @@ function keyup() {
 //updates the graph by updating links, nodes and binding them with DOM
 //interface is defined through several events
 function restart() {
-  edges = edges.data(links, function(d) {
+  edges = edges.data(links, function (d) {
     return "v" + d.source.id + "-v" + d.target.id;
   });
   edges.exit().remove();
@@ -270,19 +272,19 @@ function restart() {
     .enter()
     .append("line")
     .attr("class", "edge")
-    .on("mousedown", function() {
+    .on("mousedown", function () {
       d3.event.stopPropagation();
     })
     .on("contextmenu", removeEdge);
 
-  ed.append("title").text(function(d) {
+  ed.append("title").text(function (d) {
     return "v" + d.source.id + "-v" + d.target.id;
   });
 
   edges = ed.merge(edges);
 
   //vertices are known by id
-  vertices = vertices.data(nodes, function(d) {
+  vertices = vertices.data(nodes, function (d) {
     return d.id;
   });
   vertices.exit().remove();
@@ -292,14 +294,14 @@ function restart() {
     .append("circle")
     .attr("r", rad)
     .attr("class", "vertex")
-    .style("fill", function(d, i) {
+    .style("fill", function (d, i) {
       return colors[d.id % 10];
     })
     .on("mousedown", beginDragLine)
     .on("mouseup", endDragLine)
     .on("contextmenu", removeNode);
 
-  ve.append("title").text(function(d) {
+  ve.append("title").text(function (d) {
     return "v" + d.id;
   });
 
@@ -315,7 +317,7 @@ svg
   .on("mousedown", addNode)
   .on("mousemove", updateDragLine)
   .on("mouseup", hideDragLine)
-  .on("contextmenu", function() {
+  .on("contextmenu", function () {
     d3.event.preventDefault();
   })
   .on("mouseleave", hideDragLine);
@@ -323,10 +325,10 @@ svg
 d3.select(window)
   .on("keydown", keydown)
   .on("keyup", keyup)
-  .on("resize", function() {
+  .on("resize", function () {
     updateDimensions();
     // Reposition nodes to stay within new bounds
-    nodes.forEach(function(d) {
+    nodes.forEach(function (d) {
       d.x = Math.max(rad, Math.min(w - rad, d.x));
       d.y = Math.max(rad, Math.min(h - rad, d.y));
     });
@@ -369,3 +371,116 @@ function showGraphLatex() {
   //recall mathjax
   MathJax.Hub.Queue(["Typeset", MathJax.Hub]);
 }
+// --------------------------------Additional UI logic-------------------------
+
+// Update source node selector
+function updateSourceSelector() {
+  const sourceSelect = document.getElementById("source-select");
+  sourceSelect.innerHTML = "";
+
+  if (nodes.length === 0) {
+    sourceSelect.innerHTML = '<option value="">-- No nodes available --</option>';
+    sourceSelect.disabled = true;
+  } else {
+    sourceSelect.innerHTML = '<option value="">-- Select source node --</option>';
+    const sortedNodes = [...nodes].sort((a, b) => a.id - b.id);
+    sortedNodes.forEach(node => {
+      const option = document.createElement("option");
+      option.value = node.id;
+      option.textContent = `Node ${node.id}`;
+      sourceSelect.appendChild(option);
+    });
+    sourceSelect.disabled = false;
+  }
+}
+
+var selectedSourceNode = null;
+// Update visual indication of source node
+function updateSourceNodeVisual() {
+  if (typeof vertices !== 'undefined') {
+    vertices.classed("source-node", function (d) {
+      return selectedSourceNode && d.id == selectedSourceNode;
+    });
+  }
+}
+
+// Source node selector event listener
+document.getElementById("source-select").addEventListener("change", function (e) {
+  selectedSourceNode = e.target.value ? parseInt(e.target.value) : null;
+  updateSourceNodeVisual();
+});
+
+document.addEventListener("DOMContentLoaded", () => {
+  const themeToggle = document.getElementById("theme-toggle");
+  const outputBox = document.getElementById("output-box");
+  const algoSelect = document.getElementById("algo-select");
+  const computeBtn = document.getElementById("compute-btn");
+
+  // Dark mode toggle
+  themeToggle.addEventListener("change", () => {
+    document.body.classList.toggle("dark", themeToggle.checked);
+  });
+
+  // Compute button click
+  computeBtn.addEventListener("click", () => {
+    const selectedAlgo = algoSelect.value;
+    if (!selectedAlgo || !selectedSourceNode) {
+      outputBox.innerHTML = "Please select an algorithm and source node first.";
+      return;
+    }
+    // Placeholder output (replace with actual algorithm results)
+    outputBox.innerHTML = `Running <b>${selectedAlgo}</b> on the drawn graph...`;
+  });
+
+  // Clear all
+  document.getElementById("clear-graph").addEventListener("click", () => {
+    outputBox.innerHTML = "Graph cleared.";
+  });
+});
+
+
+// Theme toggle functionality
+document.getElementById('theme-toggle').addEventListener('change', function (e) {
+  document.body.classList.toggle('dark', e.target.checked);
+  localStorage.setItem('darkMode', e.target.checked);
+});
+
+// Load saved theme
+if (localStorage.getItem('darkMode') === 'true') {
+  document.body.classList.add('dark');
+  document.getElementById('theme-toggle').checked = true;
+}
+
+document.getElementById("info-btn").addEventListener("click", function () {
+  alert("Left click: Add node\nDrag between nodes: Add edge\nRight click node/edge: Remove\nCtrl + drag: Move nodes");
+});
+
+// Mode indicator functionality
+const themeToggle = document.getElementById("theme-toggle");
+const modeIcon = document.getElementById("mode-icon");
+const modeText = document.getElementById("mode-text");
+
+function updateModeIndicator(isDark) {
+  if (isDark) {
+    modeIcon.textContent = "🌑";
+    modeText.textContent = "Dark";
+  } else {
+    modeIcon.textContent = "☀️";
+    modeText.textContent = "Light";
+  }
+}
+
+// Enhanced theme toggle that also updates mode indicator
+themeToggle.addEventListener("change", function (e) {
+  const isDark = e.target.checked;
+  document.body.classList.toggle("dark", isDark);
+  updateModeIndicator(isDark);
+});
+
+// Initialize mode indicator
+updateModeIndicator(themeToggle.checked);
+
+// Initialize source selector when page loads
+setTimeout(function () {
+  updateSourceSelector();
+}, 100);
