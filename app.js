@@ -511,11 +511,19 @@ let longPressTimer = null;
 let lastTapTime = 0;
 let lastTappedNode = null;
 
-// Add touch event listeners to the SVG
+// Add touch event listeners to the SVG (replace the existing mouse events)
 svg
   .on("touchstart", handleTouchStart)
   .on("touchmove", handleTouchMove)
-  .on("touchend", handleTouchEnd);
+  .on("touchend", handleTouchEnd)
+  // Keep mouse events for desktop compatibility
+  .on("mousedown", addNode)
+  .on("mousemove", updateDragLine)
+  .on("mouseup", hideDragLine)
+  .on("contextmenu", function () {
+    d3.event.preventDefault();
+  })
+  .on("mouseleave", hideDragLine);
 
 function handleTouchStart() {
   d3.event.preventDefault();
@@ -623,16 +631,13 @@ function handleTouchEnd() {
       }
     } else {
       // Tapped on empty space - add node
-      const newNode = createNodeAt(coords[0], coords[1]);
-      addNodeAnimation(newNode);
+      addNodeAtTouch(coords[0], coords[1]);
       lastTappedNode = null;
       lastTapTime = 0;
     }
   } else if (touchStartNode && endNode && touchStartNode !== endNode && isDragging) {
     // Dragged from one node to another - create edge
-    if (createEdgeBetweenNodes(touchStartNode, endNode)) {
-      animateEdgeCreation(touchStartNode, endNode);
-    }
+    createEdgeBetweenNodes(touchStartNode, endNode);
     lastTappedNode = null;
     lastTapTime = 0;
   }
@@ -661,6 +666,11 @@ function handleLongPress() {
       .transition()
       .duration(150)
       .attr("r", rad);
+
+    console.log(`Node ${touchStartNode.id} ready to drag`);
+  } else {
+    // Long press on empty space - could add context menu here
+    console.log("Long press on empty space");
   }
   longPressTimer = null;
 }
@@ -674,29 +684,62 @@ function getNodeAtPosition(x, y) {
   });
 }
 
-function addNodeAnimation(node) {
+function addNodeAtTouch(x, y) {
+  const newNode = {
+    x: Math.max(rad, Math.min(w - rad, x)),
+    y: Math.max(rad, Math.min(h - rad, y)),
+    id: ++lastNodeId
+  };
+  nodes.push(newNode);
+
+  // Update source selector if function exists
+  if (typeof updateSourceSelector === 'function') {
+    updateSourceSelector();
+  }
+
+  restart();
+  showGraphLatex();
+
   // Visual feedback - growth animation
   setTimeout(() => {
-    vertices.filter(d => d.id === node.id)
+    vertices.filter(d => d.id === newNode.id)
       .attr("r", 0)
       .transition()
       .duration(300)
       .attr("r", rad)
-      .style("fill", colors[node.id % 10]);
+      .style("fill", colors[newNode.id % 10]);
   }, 10);
 }
 
-function animateEdgeCreation(sourceNode, targetNode) {
-  // Brief highlight of connected nodes
-  vertices.filter(d => d.id === sourceNode.id || d.id === targetNode.id)
-    .transition()
-    .duration(200)
-    .style("stroke", "var(--success)")
-    .style("stroke-width", "4px")
-    .transition()
-    .duration(300)
-    .style("stroke", null)
-    .style("stroke-width", null);
+function createEdgeBetweenNodes(sourceNode, targetNode) {
+  // Check if edge already exists
+  const edgeExists = links.some(link =>
+    (link.source === sourceNode && link.target === targetNode) ||
+    (link.source === targetNode && link.target === sourceNode)
+  );
+
+  if (!edgeExists) {
+    const newLink = { source: sourceNode, target: targetNode };
+    links.push(newLink);
+    restart();
+    showGraphLatex();
+
+    // Visual feedback
+    console.log(`Created edge between node ${sourceNode.id} and node ${targetNode.id}`);
+
+    // Brief highlight of connected nodes
+    vertices.filter(d => d.id === sourceNode.id || d.id === targetNode.id)
+      .transition()
+      .duration(200)
+      .style("stroke", "var(--success)")
+      .style("stroke-width", "4px")
+      .transition()
+      .duration(300)
+      .style("stroke", null)
+      .style("stroke-width", null);
+  } else {
+    console.log("Edge already exists");
+  }
 }
 
 function highlightNode(node) {
@@ -712,6 +755,8 @@ function highlightNode(node) {
     .transition()
     .duration(200)
     .attr("r", rad);
+
+  console.log(`Selected node ${node.id}`);
 }
 
 function deleteNodeWithAnimation(nodeToDelete) {
@@ -733,12 +778,49 @@ function deleteNodeWithAnimation(nodeToDelete) {
     .attr("r", 0)
     .style("opacity", 0)
     .on("end", () => {
-      // Find and remove the actual node
-      const nodeIndex = nodes.findIndex(n => n.id === nodeToDelete.id);
-      if (nodeIndex !== -1) {
-        removeNode(nodes[nodeIndex], nodeIndex);
-      }
+      // Actually remove the node after animation
+      removeNodeById(nodeToDelete.id);
     });
+}
+
+function removeNodeById(nodeId) {
+  const nodeToRemove = nodes.find(n => n.id === nodeId);
+  if (nodeToRemove) {
+    // Clear selection if we're deleting the selected source node
+    if (typeof selectedSourceNode !== 'undefined' && selectedSourceNode == nodeId) {
+      selectedSourceNode = null;
+      const sourceSelect = document.getElementById("source-select");
+      if (sourceSelect) {
+        sourceSelect.value = "";
+      }
+    }
+
+    // Remove node
+    nodes.splice(nodes.indexOf(nodeToRemove), 1);
+
+    // Remove connected edges
+    const linksToRemove = links.filter(l =>
+      l.source === nodeToRemove || l.target === nodeToRemove
+    );
+    linksToRemove.forEach(l => {
+      links.splice(links.indexOf(l), 1);
+    });
+
+    // Update lastNodeId
+    if (nodes.length !== 0) {
+      lastNodeId = Math.max(...nodes.map(node => node.id));
+    } else {
+      lastNodeId = 0;
+    }
+
+    // Update source selector if function exists
+    if (typeof updateSourceSelector === 'function') {
+      updateSourceSelector();
+    }
+
+    restart();
+    showGraphLatex();
+  }
 }
 
 // Initialize everything
