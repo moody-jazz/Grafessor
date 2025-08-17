@@ -760,13 +760,33 @@ function highlightNode(node) {
 }
 
 function deleteNodeWithAnimation(nodeToDelete) {
-  // Visual feedback before deletion
-  const nodeElement = vertices.filter(d => d.id === nodeToDelete.id);
-
+  console.log(`Attempting to delete node ${nodeToDelete.id}`);
+  
+  // Store the node ID before starting animation
+  const nodeIdToDelete = nodeToDelete.id;
+  
   // Haptic feedback
   if (navigator.vibrate) {
     navigator.vibrate([50, 50, 50]);
   }
+
+  // Visual feedback before deletion
+  const nodeElement = vertices.filter(d => d.id === nodeIdToDelete);
+  
+  if (nodeElement.empty()) {
+    console.log(`Node ${nodeIdToDelete} not found in DOM, deleting directly`);
+    removeNodeById(nodeIdToDelete);
+    return;
+  }
+
+  // Use a timeout as backup in case the transition doesn't complete
+  let animationCompleted = false;
+  const backupTimeout = setTimeout(() => {
+    if (!animationCompleted) {
+      console.log(`Animation timeout for node ${nodeIdToDelete}, forcing deletion`);
+      removeNodeById(nodeIdToDelete);
+    }
+  }, 500); // 500ms backup timeout
 
   nodeElement
     .transition()
@@ -777,50 +797,81 @@ function deleteNodeWithAnimation(nodeToDelete) {
     .duration(200)
     .attr("r", 0)
     .style("opacity", 0)
-    .on("end", () => {
-      // Actually remove the node after animation
-      removeNodeById(nodeToDelete.id);
+    .on("end", function() {
+      if (!animationCompleted) {
+        animationCompleted = true;
+        clearTimeout(backupTimeout);
+        console.log(`Animation completed for node ${nodeIdToDelete}, deleting now`);
+        removeNodeById(nodeIdToDelete);
+      }
+    })
+    .on("interrupt", function() {
+      // Handle case where animation is interrupted
+      if (!animationCompleted) {
+        animationCompleted = true;
+        clearTimeout(backupTimeout);
+        console.log(`Animation interrupted for node ${nodeIdToDelete}, deleting anyway`);
+        removeNodeById(nodeIdToDelete);
+      }
     });
 }
 
 function removeNodeById(nodeId) {
+  console.log(`removeNodeById called for node ${nodeId}`);
+  
   const nodeToRemove = nodes.find(n => n.id === nodeId);
-  if (nodeToRemove) {
-    // Clear selection if we're deleting the selected source node
-    if (typeof selectedSourceNode !== 'undefined' && selectedSourceNode == nodeId) {
-      selectedSourceNode = null;
-      const sourceSelect = document.getElementById("source-select");
-      if (sourceSelect) {
-        sourceSelect.value = "";
-      }
-    }
-
-    // Remove node
-    nodes.splice(nodes.indexOf(nodeToRemove), 1);
-
-    // Remove connected edges
-    const linksToRemove = links.filter(l =>
-      l.source === nodeToRemove || l.target === nodeToRemove
-    );
-    linksToRemove.forEach(l => {
-      links.splice(links.indexOf(l), 1);
-    });
-
-    // Update lastNodeId
-    if (nodes.length !== 0) {
-      lastNodeId = Math.max(...nodes.map(node => node.id));
-    } else {
-      lastNodeId = 0;
-    }
-
-    // Update source selector if function exists
-    if (typeof updateSourceSelector === 'function') {
-      updateSourceSelector();
-    }
-
-    restart();
-    showGraphLatex();
+  if (!nodeToRemove) {
+    console.log(`Node ${nodeId} not found in nodes array`);
+    return;
   }
+
+  console.log(`Found node ${nodeId}, removing...`);
+
+  // Clear selection if we're deleting the selected source node
+  if (typeof selectedSourceNode !== 'undefined' && selectedSourceNode == nodeId) {
+    selectedSourceNode = null;
+    const sourceSelect = document.getElementById("source-select");
+    if (sourceSelect) {
+      sourceSelect.value = "";
+    }
+  }
+
+  // Remove node from array
+  const nodeIndex = nodes.indexOf(nodeToRemove);
+  if (nodeIndex > -1) {
+    nodes.splice(nodeIndex, 1);
+    console.log(`Removed node ${nodeId} from nodes array`);
+  }
+
+  // Remove connected edges
+  const linksToRemove = links.filter(l =>
+    l.source === nodeToRemove || l.target === nodeToRemove ||
+    l.source.id === nodeId || l.target.id === nodeId
+  );
+  
+  linksToRemove.forEach(l => {
+    const linkIndex = links.indexOf(l);
+    if (linkIndex > -1) {
+      links.splice(linkIndex, 1);
+      console.log(`Removed link connected to node ${nodeId}`);
+    }
+  });
+
+  // Update lastNodeId
+  if (nodes.length !== 0) {
+    lastNodeId = Math.max(...nodes.map(node => node.id));
+  } else {
+    lastNodeId = 0;
+  }
+
+  // Update source selector if function exists
+  if (typeof updateSourceSelector === 'function') {
+    updateSourceSelector();
+  }
+
+  console.log(`Node ${nodeId} deletion complete, restarting visualization`);
+  restart();
+  showGraphLatex();
 }
 
 // Initialize everything
