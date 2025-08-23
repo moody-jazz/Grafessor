@@ -1,11 +1,10 @@
-
 //node ids are in order in which nodes come in existence
 var nodes = [{ id: 1 }, { id: 2 }, { id: 3 }];
 
 var links = [
-  { source: 0, target: 1 },
-  { source: 0, target: 2 },
-  { source: 1, target: 2 }
+  { source: 0, target: 1, weight: 5 },
+  { source: 0, target: 2, weight: 3 },
+  { source: 1, target: 2, weight: 2 }
 ];
 
 //dynamic width and height based on container
@@ -43,6 +42,7 @@ var dragLine = svg
   .attr("d", "M0,0L0,0");
 
 var edges = svg.append("g").selectAll(".edge");
+var edgeWeights = svg.append("g").selectAll(".edge-weight-group");
 var vertices = svg.append("g").selectAll(".vertex");
 
 var force = d3
@@ -66,6 +66,17 @@ force.force("link").links(links);
 var colors = d3.schemeCategory10;
 var mousedownNode = null;
 var selectedSourceNode = null;
+
+// Get current edge weight from input
+function getCurrentEdgeWeight() {
+  const weightInput = document.getElementById("edge-weight");
+  let weight = parseInt(weightInput.value);
+  if (isNaN(weight) || weight < 1 || weight > 999) {
+    weight = 1;
+    weightInput.value = 1;
+  }
+  return weight;
+}
 
 // Boundary constraint function
 function boundNodes() {
@@ -99,6 +110,15 @@ function tick() {
     .attr("x2", function (d) { return d.target.x; })
     .attr("y2", function (d) { return d.target.y; });
 
+  // Update edge weight positions
+  edgeWeights.selectAll(".edge-weight-bg")
+    .attr("cx", function (d) { return (d.source.x + d.target.x) / 2; })
+    .attr("cy", function (d) { return (d.source.y + d.target.y) / 2; });
+
+  edgeWeights.selectAll(".edge-weight")
+    .attr("x", function (d) { return (d.source.x + d.target.x) / 2; })
+    .attr("y", function (d) { return (d.source.y + d.target.y) / 2; });
+
   vertices
     .attr("cx", function (d) { return d.x; })
     .attr("cy", function (d) { return d.y; });
@@ -127,14 +147,14 @@ function createNodeAt(x, y) {
 function removeNode(d, i) {
   //to make ctrl-drag works for mac/osx users
   if (d3.event.ctrlKey) return;
-  
+
   // Clear selection if we're deleting the selected source node
   if (selectedSourceNode == d.id) {
     selectedSourceNode = null;
     const sourceSelect = document.getElementById("source-select");
     if (sourceSelect) sourceSelect.value = "";
   }
-  
+
   nodes.splice(nodes.indexOf(d), 1);
   var linksToRemove = links.filter(function (l) {
     return l.source === d || l.target === d;
@@ -142,11 +162,11 @@ function removeNode(d, i) {
   linksToRemove.map(function (l) {
     links.splice(links.indexOf(l), 1);
   });
-  
+
   if (nodes.length != 0)
     lastNodeId = Math.max(...nodes.map(node => node.id));
   else lastNodeId = 0;
-  
+
   d3.event.preventDefault();
   restart();
   showGraphLatex();
@@ -165,22 +185,22 @@ function beginDragLine(d) {
   d3.event.stopPropagation();
   //to prevent dragging of svg in firefox
   d3.event.preventDefault();
-  
+
   // If Ctrl is pressed, handle node dragging instead
   if (isCtrlPressed) {
     console.log("Starting node drag for node", d.id);
-    
+
     // Start dragging this specific node
     d.isDragging = true;
     d.fx = d.x;
     d.fy = d.y;
     force.alphaTarget(0.3).restart();
-    
+
     // Store the dragging node globally
     mousedownNode = d;
     return;
   }
-  
+
   if (d3.event.button != 0) return;
   mousedownNode = d;
   dragLine
@@ -193,7 +213,7 @@ function beginDragLine(d) {
 
 function updateDragLine() {
   var coords = d3.mouse(d3.event.currentTarget);
-  
+
   // If we're dragging a node (Ctrl mode)
   if (isCtrlPressed && mousedownNode && mousedownNode.isDragging) {
     console.log("Dragging node", mousedownNode.id, "to", coords);
@@ -201,7 +221,7 @@ function updateDragLine() {
     mousedownNode.fy = Math.max(rad, Math.min(h - rad, coords[1]));
     return;
   }
-  
+
   // Normal edge drag line
   if (!mousedownNode) return;
   dragLine.attr(
@@ -219,7 +239,7 @@ function hideDragLine() {
     mousedownNode.isDragging = false;
     force.alphaTarget(0);
   }
-  
+
   dragLine.classed("hidden", true);
   mousedownNode = null;
   restart();
@@ -243,7 +263,11 @@ function createEdgeBetweenNodes(sourceNode, targetNode) {
       return false;
     }
   }
-  var newLink = { source: sourceNode, target: targetNode };
+  var newLink = {
+    source: sourceNode,
+    target: targetNode,
+    weight: getCurrentEdgeWeight()
+  };
   links.push(newLink);
   restart();
   showGraphLatex();
@@ -290,6 +314,7 @@ function updateSourceNodeVisual() {
 //updates the graph by updating links, nodes and binding them with DOM
 //interface is defined through several events
 function restart() {
+  // Update edges
   edges = edges.data(links, function (d) {
     return "v" + d.source.id + "-v" + d.target.id;
   });
@@ -305,10 +330,36 @@ function restart() {
     .on("contextmenu", removeEdge);
 
   ed.append("title").text(function (d) {
-    return "v" + d.source.id + "-v" + d.target.id;
+    return "v" + d.source.id + "-v" + d.target.id + " (weight: " + d.weight + ")";
   });
 
   edges = ed.merge(edges);
+
+  // Update edge weights
+  edgeWeights = edgeWeights.data(links, function (d) {
+    return "weight-v" + d.source.id + "-v" + d.target.id;
+  });
+  edgeWeights.exit().remove();
+
+  var ewg = edgeWeights
+    .enter()
+    .append("g")
+    .attr("class", "edge-weight-group");
+
+  // Add background circle for weight text
+  ewg.append("circle")
+    .attr("class", "edge-weight-bg")
+    .attr("r", 12);
+
+  // Add weight text
+  ewg.append("text")
+    .attr("class", "edge-weight")
+    .text(function (d) { return d.weight; });
+
+  edgeWeights = ewg.merge(edgeWeights);
+
+  // Update weight text content for existing edges
+  edgeWeights.select(".edge-weight").text(function (d) { return d.weight; });
 
   //vertices are known by id
   vertices = vertices.data(nodes, function (d) {
@@ -334,7 +385,7 @@ function restart() {
   });
 
   vertices = ve.merge(vertices);
-  
+
   // Update source node visual
   updateSourceNodeVisual();
 
@@ -380,18 +431,11 @@ function showGraphLatex() {
   var e = "\\[E=\\{";
   for (let i = 0; i < links.length; i++) {
     if (i == links.length - 1)
-      e += "v_{" + links[i].source.id + "}" + "v_{" + links[i].target.id + "}";
+      e += "(v_{" + links[i].source.id + "}" + ",v_{" + links[i].target.id + "}," + links[i].weight + ")";
     else
-      e +=
-        "v_{" +
-        links[i].source.id +
-        "}" +
-        "v_{" +
-        links[i].target.id +
-        "}" +
-        ",";
+      e += "(v_{" + links[i].source.id + "}" + ",v_{" + links[i].target.id + "}," + links[i].weight + ")" + ",";
     //add line break
-    if ((i + 1) % 10 == 0) e += "\\\\";
+    if ((i + 1) % 8 == 0) e += "\\\\";
   }
   e += "\\}\\]";
 
@@ -437,6 +481,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const infoBtn = document.getElementById("info-btn");
   const modeIcon = document.getElementById("mode-icon");
   const modeText = document.getElementById("mode-text");
+  const edgeWeightInput = document.getElementById("edge-weight");
 
   // Theme toggle and mode indicator update
   function updateModeIndicator(isDark) {
@@ -450,7 +495,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // Load saved theme
-  if (localStorage.getItem('darkMode') === 'true') {
+  if (localStorage && localStorage.getItem('darkMode') === 'true') {
     document.body.classList.add('dark');
     themeToggle.checked = true;
   }
@@ -462,8 +507,20 @@ document.addEventListener("DOMContentLoaded", () => {
   themeToggle.addEventListener("change", (e) => {
     const isDark = e.target.checked;
     document.body.classList.toggle("dark", isDark);
-    localStorage.setItem('darkMode', isDark);
+    if (localStorage) {
+      localStorage.setItem('darkMode', isDark);
+    }
     updateModeIndicator(isDark);
+  });
+
+  // Edge weight input validation
+  edgeWeightInput.addEventListener("input", (e) => {
+    let value = parseInt(e.target.value);
+    if (isNaN(value) || value < 1) {
+      e.target.value = 1;
+    } else if (value > 999) {
+      e.target.value = 999;
+    }
   });
 
   // Compute button click
@@ -473,7 +530,7 @@ document.addEventListener("DOMContentLoaded", () => {
       outputBox.innerHTML = "Please select an algorithm and source node first.";
       return;
     }
-    outputBox.innerHTML = `Running <b>${selectedAlgo}</b> on the drawn graph...`;
+    outputBox.innerHTML = `Running <b>${selectedAlgo}</b> on the weighted graph with source node ${selectedSourceNode}...`;
   });
 
   // Clear all
@@ -487,15 +544,18 @@ document.addEventListener("DOMContentLoaded", () => {
     alert(`Controls:
 Desktop:
 • Left click: Add node
-• Drag between nodes: Add edge  
+• Drag between nodes: Add edge with current weight
 • Right click node/edge: Remove
 • Ctrl + drag: Move nodes
+• Edge Weight input: Set weight for new edges (1-999)
 
 Touch:
 • Tap empty space: Add node
 • Double-tap node: Delete node
-• Drag node to node: Create edge
-• Long press + drag node: Move node`);
+• Drag node to node: Create edge with current weight
+• Long press + drag node: Move node
+
+Edge weights are displayed in blue circles on each edge.`);
   });
 
   // Initialize source selector
@@ -636,7 +696,7 @@ function handleTouchEnd() {
       lastTapTime = 0;
     }
   } else if (touchStartNode && endNode && touchStartNode !== endNode && isDragging) {
-    // Dragged from one node to another - create edge
+    // Dragged from one node to another - create edge with current weight
     createEdgeBetweenNodes(touchStartNode, endNode);
     lastTappedNode = null;
     lastTapTime = 0;
@@ -711,7 +771,7 @@ function addNodeAtTouch(x, y) {
   }, 10);
 }
 
-function createEdgeBetweenNodes(sourceNode, targetNode) {
+function createEdgeBetweenNodesMobile(sourceNode, targetNode) {
   // Check if edge already exists
   const edgeExists = links.some(link =>
     (link.source === sourceNode && link.target === targetNode) ||
@@ -719,13 +779,17 @@ function createEdgeBetweenNodes(sourceNode, targetNode) {
   );
 
   if (!edgeExists) {
-    const newLink = { source: sourceNode, target: targetNode };
+    const newLink = {
+      source: sourceNode,
+      target: targetNode,
+      weight: getCurrentEdgeWeight()
+    };
     links.push(newLink);
     restart();
     showGraphLatex();
 
     // Visual feedback
-    console.log(`Created edge between node ${sourceNode.id} and node ${targetNode.id}`);
+    console.log(`Created weighted edge (${getCurrentEdgeWeight()}) between node ${sourceNode.id} and node ${targetNode.id}`);
 
     // Brief highlight of connected nodes
     vertices.filter(d => d.id === sourceNode.id || d.id === targetNode.id)
@@ -761,10 +825,10 @@ function highlightNode(node) {
 
 function deleteNodeWithAnimation(nodeToDelete) {
   console.log(`Attempting to delete node ${nodeToDelete.id}`);
-  
+
   // Store the node ID before starting animation
   const nodeIdToDelete = nodeToDelete.id;
-  
+
   // Haptic feedback
   if (navigator.vibrate) {
     navigator.vibrate([50, 50, 50]);
@@ -772,7 +836,7 @@ function deleteNodeWithAnimation(nodeToDelete) {
 
   // Visual feedback before deletion
   const nodeElement = vertices.filter(d => d.id === nodeIdToDelete);
-  
+
   if (nodeElement.empty()) {
     console.log(`Node ${nodeIdToDelete} not found in DOM, deleting directly`);
     removeNodeById(nodeIdToDelete);
@@ -797,7 +861,7 @@ function deleteNodeWithAnimation(nodeToDelete) {
     .duration(200)
     .attr("r", 0)
     .style("opacity", 0)
-    .on("end", function() {
+    .on("end", function () {
       if (!animationCompleted) {
         animationCompleted = true;
         clearTimeout(backupTimeout);
@@ -805,7 +869,7 @@ function deleteNodeWithAnimation(nodeToDelete) {
         removeNodeById(nodeIdToDelete);
       }
     })
-    .on("interrupt", function() {
+    .on("interrupt", function () {
       // Handle case where animation is interrupted
       if (!animationCompleted) {
         animationCompleted = true;
@@ -818,7 +882,7 @@ function deleteNodeWithAnimation(nodeToDelete) {
 
 function removeNodeById(nodeId) {
   console.log(`removeNodeById called for node ${nodeId}`);
-  
+
   const nodeToRemove = nodes.find(n => n.id === nodeId);
   if (!nodeToRemove) {
     console.log(`Node ${nodeId} not found in nodes array`);
@@ -848,12 +912,12 @@ function removeNodeById(nodeId) {
     l.source === nodeToRemove || l.target === nodeToRemove ||
     l.source.id === nodeId || l.target.id === nodeId
   );
-  
+
   linksToRemove.forEach(l => {
     const linkIndex = links.indexOf(l);
     if (linkIndex > -1) {
       links.splice(linkIndex, 1);
-      console.log(`Removed link connected to node ${nodeId}`);
+      console.log(`Removed weighted link connected to node ${nodeId}`);
     }
   });
 

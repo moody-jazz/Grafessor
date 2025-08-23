@@ -166,7 +166,8 @@ input:checked+.slider:before {
   font-size: 0.9rem;
 }
 
-.left-panel select {
+.left-panel select,
+.left-panel input {
   width: 100%;
   padding: 0.75rem;
   border: 1px solid var(--border-color);
@@ -178,7 +179,8 @@ input:checked+.slider:before {
   transition: all 0.2s ease;
 }
 
-.left-panel select:focus {
+.left-panel select:focus,
+.left-panel input:focus {
   outline: none;
   border-color: var(--accent-primary);
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
@@ -290,7 +292,6 @@ button:active {
   stroke: var(--bg-primary);
   stroke-width: 3px;
   cursor: pointer;
-  /* No transition for instant position updates */
 }
 
 .vertex:hover {
@@ -304,13 +305,30 @@ button:active {
   stroke: var(--text-primary);
   stroke-width: 2px;
   cursor: pointer;
-  /* No transition for instant position updates */
 }
 
 .edge:hover {
   stroke: var(--accent-primary);
   stroke-width: 3px;
   transition: stroke 0.1s ease, stroke-width 0.1s ease;
+}
+
+.edge-weight {
+  font-family: 'Fira Code', 'Monaco', monospace;
+  font-size: 14px;
+  font-weight: bold;
+  fill: var(--accent-primary);
+  text-anchor: middle;
+  dominant-baseline: central;
+  pointer-events: none;
+  user-select: none;
+}
+
+.edge-weight-bg {
+  fill: var(--bg-primary);
+  stroke: var(--border-color);
+  stroke-width: 1px;
+  pointer-events: none;
 }
 
 .dragLine {
@@ -367,7 +385,12 @@ button:active {
   margin-bottom: 1.5rem;
 }
 
-#source-select {
+.weight-selector {
+  margin-bottom: 1.5rem;
+}
+
+#source-select,
+#edge-weight {
   width: 100%;
   padding: 0.75rem;
   border: 1px solid var(--border-color);
@@ -378,7 +401,8 @@ button:active {
   transition: all 0.2s ease;
 }
 
-#source-select:focus {
+#source-select:focus,
+#edge-weight:focus {
   outline: none;
   border-color: var(--success);
   box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
@@ -393,6 +417,19 @@ button:active {
 .vertex.source-node {
   stroke: var(--success);
   stroke-width: 4px;
+}
+
+/* Weight input styling */
+#edge-weight {
+  text-align: center;
+  font-weight: 600;
+}
+
+.weight-info {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-top: 0.5rem;
+  text-align: center;
 }
 
 /* Responsive Design */
@@ -477,35 +514,10 @@ button:active {
 
 /* Focus States */
 button:focus,
-select:focus {
+select:focus,
+input:focus {
   outline: 2px solid var(--accent-primary);
   outline-offset: 2px;
-}
-
-/* Loading State */
-.loading {
-  position: relative;
-  pointer-events: none;
-}
-
-.loading::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 20px;
-  height: 20px;
-  margin: -10px 0 0 -10px;
-  border: 2px solid var(--border-color);
-  border-top-color: var(--accent-primary);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
 }
 
 /* Enhanced Graph Area with Grid Pattern */
