@@ -526,11 +526,55 @@ document.addEventListener("DOMContentLoaded", () => {
   // Compute button click
   computeBtn.addEventListener("click", () => {
     const selectedAlgo = algoSelect.value;
-    if (!selectedAlgo || !selectedSourceNode) {
-      outputBox.innerHTML = "Please select an algorithm and source node first.";
+
+    if (!selectedAlgo) {
+      outputBox.innerHTML = "Please select an algorithm first.";
       return;
     }
-    outputBox.innerHTML = `Running <b>${selectedAlgo}</b> on the weighted graph with source node ${selectedSourceNode}...`;
+
+    // Kruskal doesn't need a source node
+    if (selectedAlgo !== 'kruskal' && !selectedSourceNode) {
+      outputBox.innerHTML = "Please select a source node for this algorithm.";
+      return;
+    }
+
+    if (nodes.length === 0) {
+      outputBox.innerHTML = "Graph is empty. Please add some nodes first.";
+      return;
+    }
+    
+    // Highlight edges from algorithm results
+    function highlightAlgorithmEdges(visitedEdges) {
+      // Reset all edges to normal
+      edges.classed("algorithm-edge", false);
+
+      // Highlight the edges from the algorithm
+      edges.classed("algorithm-edge", function (d) {
+        return visitedEdges.some(e =>
+          (e.source === d.source.id && e.target === d.target.id) ||
+          (e.source === d.target.id && e.target === d.source.id)
+        );
+      });
+
+      // Auto-remove highlight after 10 seconds
+      setTimeout(() => {
+        edges.classed("algorithm-edge", false);
+      }, 10000);
+    }
+
+    // Run the algorithm
+    const algorithmResult = runAlgorithm(selectedAlgo, nodes, links, selectedSourceNode);
+
+    if (algorithmResult.success) {
+      outputBox.innerHTML = `<div style="white-space: pre-wrap; font-family: 'Fira Code', monospace;">${algorithmResult.result.steps}</div>`;
+
+      // Highlight visited edges in the visualization
+      if (algorithmResult.result.visitedEdges && algorithmResult.result.visitedEdges.length > 0) {
+        highlightAlgorithmEdges(algorithmResult.result.visitedEdges);
+      }
+    } else {
+      outputBox.innerHTML = `<span style="color: var(--danger);">${algorithmResult.message}</span>`;
+    }
   });
 
   // Clear all
@@ -941,3 +985,4 @@ function removeNodeById(nodeId) {
 // Initialize everything
 restart();
 showGraphLatex();
+
